@@ -1,0 +1,43 @@
+﻿{
+  "expo": {
+    "name": "GLOPIXS",
+    "slug": "glopixs",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "glopixs",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/images/transparent-splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E1D1B"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "backgroundColor": "#1E1D1B",
+      "package": "com.anonymous.glopixs"
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "expo-video"
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "reactCompiler": false
+    }
+  }
+}
+
