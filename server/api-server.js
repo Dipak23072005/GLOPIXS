@@ -9,9 +9,11 @@ const PORT = Number(process.env.PORT || 3000);
 const MIME_TYPES = {
   ".json": "application/json; charset=utf-8",
   ".mp4": "video/mp4",
+  ".m4v": "video/mp4",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
 };
 
 const ASSET_ALIASES = {
@@ -21,62 +23,191 @@ const ASSET_ALIASES = {
   "assets/ai-logo-tv.mp4": "assets/videos/ai-logo-tv.mp4",
   "assets/glopixs-spotlight-tv.mp4": "assets/videos/glopixs-spotlight-tv.mp4",
   "assets/logo-reveal.mp4": "assets/videos/logo-reveal.mp4",
+  "assets/videos/glopixs-new-logo.mp4": "video data/GLOPIXS New logo.mp4",
   "assets/company-logo.png": "assets/images/company-logo.png",
   "assets/intro-banner-logo.png": "assets/images/intro-banner-logo.png",
   "assets/top-left-logo.png": "assets/images/top-left-logo.png",
 };
 
-const titles = [
+
+function toTitleFromFile(fileName) {
+  return path
+    .basename(fileName, path.extname(fileName))
+    .replace(/\s+with\s+logo\s*$/i, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function toIdFromTitle(title) {
+  return `upcoming-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+}
+
+const GENERATED_TRAILER_FILES = [
+  "h2o-just-add-water-trailer.m4v",
+  "ladyas-vendetta-trailer.m4v",
+  "morkut-drama-trailer.m4v",
+];
+
+function getAvailableTrailers() {
+  const withLogoDir = path.resolve(ROOT, "with logo");
+  if (process.env.GLOPIXS_USE_GENERATED_MEDIA !== "1" && fs.existsSync(withLogoDir)) {
+    const files = fs
+      .readdirSync(withLogoDir)
+      .filter((fileName) => /\.mp4$/i.test(fileName))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+    if (files.length > 0) {
+      return files.map((fileName, index) => ({
+        fileName,
+        title: toTitleFromFile(fileName),
+        url: `/assets/upcoming/${encodeURIComponent(fileName)}`,
+        posterNumber: (index % 17) + 1,
+      }));
+    }
+  }
+
+  return GENERATED_TRAILER_FILES.map((fileName, index) => ({
+    fileName,
+    title: toTitleFromFile(fileName.replace(/-trailer\.mp4$/i, ".mp4")),
+    url: `/assets/generated_trailers/${encodeURIComponent(fileName)}`,
+    posterNumber: (index % 17) + 1,
+  }));
+}
+
+function getUpcomingItems() {
+  return getAvailableTrailers().map((trailer) => ({
+    id: toIdFromTitle(trailer.title),
+    title: trailer.title,
+    type: "trailer",
+    duration: "trailer",
+    videoUrl: trailer.url,
+    movieUrl: trailer.url,
+    thumbnailUrl: `/assets/posters/poster-${trailer.posterNumber}.jpg`,
+    posterUrl: `/assets/posters/poster-${trailer.posterNumber}.jpg`,
+  }));
+}
+const catalogSections = [
   {
-    id: "api-logo-video",
-    title: "GLOPIXS Spotlight",
+    section: "movies",
     type: "movie",
-    genre: "Indian OTT / Brand",
-    rating: 9.8,
-    year: 2026,
-    duration: "30 sec",
-    language: "Hindi",
-    isPremium: true,
-    description: "GLOPIXS Spotlight with the official V logo video background.",
-    thumbnailUrl: "/assets/images/intro-banner-logo.png",
-    bannerVideoUrl: "/assets/videos/glopixs-spotlight-tv.mp4",
-    videoUrl: "/assets/videos/glopixs-spotlight-tv.mp4",
-    cast: ["GLOPIXS"],
+    items: [
+      ["GLOPIXS Spotlight", "Indian OTT / Brand", "30 sec"],
+      ["H2O - Just Add Water", "Adventure", "2h 08m"],
+      ["Ladyas Vendetta", "Action Thriller", "1h 52m"],
+      ["Morkut Drama", "Drama", "1h 46m"],
+      ["Mortal Wound", "Crime", "1h 58m"],
+      ["My Name Is Riya", "Mystery", "1h 44m"],
+      ["Sister Of Murder", "Thriller", "1h 50m"],
+      ["Standing Tall", "Action", "2h 01m"],
+      ["Thai Vampire", "Horror", "1h 39m"],
+      ["The Blue Blood", "Classic", "2h 06m"],
+    ],
   },
   {
-    id: "api-tv-logo",
-    title: "GLOPIXS TV Logo",
-    type: "movie",
-    genre: "Brand / Video",
-    rating: 9.6,
-    year: 2026,
-    duration: "30 sec",
-    language: "Hindi",
-    isPremium: false,
-    description: "GLOPIXS TV size logo video.",
-    thumbnailUrl: "/assets/images/top-left-logo.png",
-    bannerVideoUrl: "/assets/videos/ai-logo-tv.mp4",
-    videoUrl: "/assets/videos/ai-logo-tv.mp4",
-    cast: ["GLOPIXS"],
+    section: "series",
+    type: "series",
+    items: [
+      ["The Demon King", "Fantasy", "8 Episodes"],
+      ["The Legend Of The Mekong River", "Historical", "7 Episodes"],
+      ["The Queen Of Beegars", "Drama", "9 Episodes"],
+      ["The Rebel", "Action", "6 Episodes"],
+      ["The Retribution", "Thriller", "8 Episodes"],
+      ["The Revenge", "Crime", "7 Episodes"],
+      ["Wild District", "Adventure", "10 Episodes"],
+      ["H2O Files", "Sci-Fi", "6 Episodes"],
+      ["Vendetta Files", "Mystery", "8 Episodes"],
+      ["Morkut Stories", "Comedy", "6 Episodes"],
+    ],
   },
   {
-    id: "api-reveal",
-    title: "GLOPIXS Logo Reveal",
+    section: "shortzone",
+    type: "short",
+    items: [
+      ["Spotlight Cut", "Trending Shorts", "4 min"],
+      ["Fast Fear", "Horror Shorts", "5 min"],
+      ["Riya Moment", "Drama Shorts", "6 min"],
+      ["Action Pulse", "Action Shorts", "5 min"],
+      ["Comedy Beat", "Comedy Shorts", "4 min"],
+      ["Motivation Drop", "Motivational", "3 min"],
+      ["Love Flash", "Romance Shorts", "5 min"],
+      ["Music Drop", "Music Shorts", "4 min"],
+      ["Kids Spark", "Kids Shorts", "6 min"],
+      ["Thrill Bite", "Thriller Shorts", "5 min"],
+    ],
+  },
+  {
+    section: "romance",
     type: "movie",
-    genre: "Reveal / Intro",
-    rating: 9.4,
-    year: 2026,
-    duration: "4 sec",
-    language: "Hindi",
-    isPremium: false,
-    description: "Short GLOPIXS reveal animation.",
-    thumbnailUrl: "/assets/images/company-logo.png",
-    bannerVideoUrl: "/assets/videos/logo-reveal.mp4",
-    videoUrl: "/assets/videos/logo-reveal.mp4",
-    cast: ["GLOPIXS"],
+    items: [
+      ["Call Me By Your Name", "Love Story", "2h 02m"],
+      ["College Love", "College Love", "1h 48m"],
+      ["Wedding Night", "Wedding", "1h 55m"],
+      ["Heartbreak Season", "Heartbreak", "1h 42m"],
+      ["Feel Good Love", "Feel Good", "1h 49m"],
+      ["Classic Hearts", "Classic Romance", "2h 01m"],
+      ["Teen Dream", "Teen Romance", "1h 38m"],
+      ["Musical Love", "Musical Romance", "1h 57m"],
+      ["Family Promise", "Family Romance", "1h 51m"],
+      ["Romantic Drama", "Romantic Drama", "2h 04m"],
+    ],
+  },
+  {
+    section: "kids",
+    type: "movie",
+    items: [
+      ["Jungle Adventure", "Adventure", "1h 22m"],
+      ["Learning Stars", "Educational", "48 min"],
+      ["Fairy Tale World", "Fairy Tales", "1h 12m"],
+      ["Superhero Kids", "Superhero", "1h 18m"],
+      ["Cartoon Club", "Cartoon", "42 min"],
+      ["Bedtime Magic", "Bedtime", "38 min"],
+      ["Fantasy School", "Fantasy", "1h 05m"],
+      ["Comedy Kids", "Comedy", "45 min"],
+      ["Animal Friends", "Animals", "52 min"],
+      ["Learning Fun", "Learning", "44 min"],
+    ],
   },
 ];
 
+function buildCatalogTitles() {
+  const availableTrailers = getAvailableTrailers();
+  let globalIndex = 0;
+  return catalogSections.flatMap((sectionConfig) =>
+    sectionConfig.items.map(([title, genre, duration], index) => {
+      const posterNumber = (globalIndex % 17) + 1;
+      const trailer = availableTrailers[globalIndex % availableTrailers.length];
+      const item = {
+        id: `${sectionConfig.section}-${index + 1}`,
+        title,
+        name: title,
+        type: sectionConfig.type,
+        rail: sectionConfig.section,
+        category: genre,
+        genre,
+        rating: Number((8.1 + (index % 6) * 0.2).toFixed(1)),
+        year: 2024 + (index % 3),
+        duration,
+        language: ["Hindi", "Marathi", "Tamil", "Telugu", "Bengali"][index % 5],
+        isPremium: index % 2 === 0,
+        description: `${title} streaming on GLOPIXS ${sectionConfig.section}.`,
+        thumbnailUrl: `/assets/posters/poster-${posterNumber}.jpg`,
+        posterUrl: `/assets/posters/poster-${posterNumber}.jpg`,
+        bannerImageUrl: `/assets/posters/poster-${posterNumber}.jpg`,
+        videoUrl: trailer.url,
+        trailerUrl: trailer.url,
+        streamUrl: trailer.url,
+        cast: ["GLOPIXS Originals", "Featured Artist", "V Studio"],
+        episodes: sectionConfig.type === "series" ? Number.parseInt(duration, 10) || 6 : undefined,
+      };
+      globalIndex += 1;
+      return item;
+    })
+  );
+}
+
+const titles = buildCatalogTitles();
 function sendJson(res, statusCode, body) {
   const payload = JSON.stringify(body);
   res.writeHead(statusCode, {
@@ -97,7 +228,16 @@ function safeEnd(res) {
 
 function sendFile(req, res, relativePath) {
   const cleanRelativePath = relativePath.replace(/^\/+/, "");
-  const aliasedPath = ASSET_ALIASES[cleanRelativePath] || cleanRelativePath;
+  let aliasedPath = ASSET_ALIASES[cleanRelativePath] || cleanRelativePath;
+  if (cleanRelativePath.startsWith("assets/upcoming/")) {
+    aliasedPath = cleanRelativePath.replace("assets/upcoming/", "with logo/");
+  }
+  if (cleanRelativePath.startsWith("assets/generated_trailers/")) {
+    aliasedPath = cleanRelativePath.replace("assets/generated_trailers/", "server/generated_trailers/");
+  }
+  if (cleanRelativePath.startsWith("assets/generated_movies/")) {
+    aliasedPath = cleanRelativePath.replace("assets/generated_movies/", "server/generated_movies/");
+  }
   const filePath = path.resolve(ROOT, aliasedPath);
 
   if (!filePath.startsWith(ROOT)) {
@@ -196,13 +336,18 @@ const server = http.createServer((req, res) => {
     sendJson(res, 200, {
       ok: true,
       service: "GLOPIXS API",
-      endpoints: ["/health", "/api/titles", "/assets/videos/ai-logo-tv.mp4"],
+      endpoints: ["/health", "/api/titles", "/api/upcoming", "/assets/videos/glopixs-new-logo.mp4"],
     });
     return;
   }
 
   if (url.pathname === "/api/titles") {
     sendJson(res, 200, { titles });
+    return;
+  }
+
+  if (url.pathname === "/api/upcoming") {
+    sendJson(res, 200, { items: getUpcomingItems() });
     return;
   }
 
@@ -242,3 +387,16 @@ server.listen(PORT, HOST, () => {
   console.log(`GLOPIXS API running at http://localhost:${PORT}`);
   console.log(`Android emulator can use http://10.0.2.2:${PORT}`);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+

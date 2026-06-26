@@ -43,3 +43,10 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# GLOPIXS local heavy media
+with logo/
+video data/
+server/__pycache__/
+*.pyc
+android/app/src/main/res/drawable-nodpi/intro_frame_*.jpg
