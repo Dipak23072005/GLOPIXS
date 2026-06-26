@@ -1,4 +1,4 @@
-const http = require("http");
+﻿const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
@@ -50,6 +50,26 @@ const GENERATED_TRAILER_FILES = [
   "morkut-drama-trailer.m4v",
 ];
 
+const GENERATED_UPCOMING_TITLES = [
+  "H2O - Just Add Water",
+  "The Legend Of The Mekong River",
+  "Ladyas Vendetta",
+  "Morkut Drama",
+  "Mortal Wound",
+  "My Name Is Riya",
+  "Sister Of Murder",
+  "Standing Tall",
+  "Thai Vampire",
+  "The Blue Blood",
+  "The Blue Whale",
+  "The Demon King",
+  "The Queen Of Beegars",
+  "The Rebel",
+  "The Retribution",
+  "The Revenge",
+  "Wild District",
+];
+
 function getAvailableTrailers() {
   const withLogoDir = path.resolve(ROOT, "with logo");
   if (process.env.GLOPIXS_USE_GENERATED_MEDIA !== "1" && fs.existsSync(withLogoDir)) {
@@ -68,12 +88,15 @@ function getAvailableTrailers() {
     }
   }
 
-  return GENERATED_TRAILER_FILES.map((fileName, index) => ({
-    fileName,
-    title: toTitleFromFile(fileName.replace(/-trailer\.mp4$/i, ".mp4")),
-    url: `/assets/generated_trailers/${encodeURIComponent(fileName)}`,
-    posterNumber: (index % 17) + 1,
-  }));
+  return GENERATED_UPCOMING_TITLES.map((title, index) => {
+    const fileName = GENERATED_TRAILER_FILES[index % GENERATED_TRAILER_FILES.length];
+    return {
+      fileName,
+      title,
+      url: `/assets/generated_trailers/${encodeURIComponent(fileName)}`,
+      posterNumber: (index % 17) + 1,
+    };
+  });
 }
 
 function getUpcomingItems() {
@@ -387,6 +410,7 @@ server.listen(PORT, HOST, () => {
   console.log(`GLOPIXS API running at http://localhost:${PORT}`);
   console.log(`Android emulator can use http://10.0.2.2:${PORT}`);
 });
+
 
 
 

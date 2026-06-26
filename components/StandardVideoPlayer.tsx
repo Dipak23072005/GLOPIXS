@@ -1,12 +1,14 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
-import React, { useEffect, useState } from "react";
+import { router } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   Image,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,12 +16,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SECTIONS } from "@/constants/data";
+import { ContentItem, FEATURED_CONTENT, LOCAL_MEDIA_KEY, SECTIONS } from "@/constants/data";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const APP_BACKGROUND = "#1E1D1B";
 const POSTER_LOGO = require("../assets/images/poster-banner-logo.png");
-const DEFAULT_VIDEO = require("../assets/videos/ai-logo-tv.mp4");
 
 type StandardVideoPlayerProps = {
   title: string;
@@ -27,6 +28,7 @@ type StandardVideoPlayerProps = {
   sectionLabel?: string;
   category?: string;
   videoSource?: string | number | null;
+  relatedItems?: ContentItem[];
   onBack: () => void;
 };
 
@@ -36,28 +38,35 @@ export function StandardVideoPlayer({
   sectionLabel,
   category,
   videoSource,
+  relatedItems: relatedItemsProp,
   onBack,
 }: StandardVideoPlayerProps) {
   const insets = useSafeAreaInsets();
   const [isPlaying, setIsPlaying] = useState(true);
-  const source =
-    typeof videoSource === "string" && /^https?:\/\//i.test(videoSource)
-      ? DEFAULT_VIDEO
-      : (videoSource ?? DEFAULT_VIDEO);
+  const source = useMemo(() => {
+    if (typeof videoSource === "string" && /^https?:\/\//i.test(videoSource)) {
+      return { uri: videoSource };
+    }
+    return typeof videoSource === "number" ? videoSource : null;
+  }, [videoSource]);
+  const hasPlayableSource = Boolean(source);
 
-  const player = useVideoPlayer(source, (videoPlayer) => {
+  const relatedItems = useMemo(() => {
+    const sourceItems = relatedItemsProp && relatedItemsProp.length > 0 ? relatedItemsProp : FEATURED_CONTENT;
+    const matching = category ? sourceItems.filter((item) => item.category === category) : [];
+    return (matching.length >= 6 ? matching : sourceItems).slice(0, 6);
+  }, [category, relatedItemsProp]);
+
+  const player = useVideoPlayer(source ?? { uri: "about:blank" }, (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.muted = false;
     videoPlayer.volume = 1;
-    videoPlayer.play();
+    if (source) videoPlayer.play();
   });
 
-  useEffect(() => {
-    player.play();
-    setIsPlaying(true);
-  }, [player, source]);
 
   const togglePlayback = () => {
+    if (!hasPlayableSource) return;
     if (isPlaying) {
       player.pause();
     } else {
@@ -70,91 +79,122 @@ export function StandardVideoPlayer({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
-        <TouchableOpacity style={styles.roundButton} onPress={onBack} activeOpacity={0.85}>
-          <Ionicons name="arrow-back" size={22} color="#F5F5F5" />
-        </TouchableOpacity>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            GLOPIXS Player
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 28 }]}
+      >
+        <View style={[styles.stage, { paddingTop: topPad + 8 }]}>
+          <Pressable style={styles.videoShell} onPress={togglePlayback}>
+                        {hasPlayableSource ? (
+              <VideoView
+                player={player}
+                style={styles.video}
+                nativeControls
+                contentFit="contain"
+                fullscreenOptions={{ enable: true }}
+                surfaceType="textureView"
+                useExoShutter={false}
+              />
+            ) : (
+              <View style={[styles.video, styles.noVideoState]}>
+                <Ionicons name="play-circle-outline" size={44} color="#E3BD36" />
+                <Text style={styles.noVideoText}>Trailer unavailable</Text>
+              </View>
+            )}
+
+            <LinearGradient
+              colors={["rgba(0,0,0,0.04)", "rgba(0,0,0,0.12)", "rgba(0,0,0,0.96)"]}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <View style={styles.playerTopControls}>
+              <TouchableOpacity style={styles.playerIcon} onPress={onBack} activeOpacity={0.86}>
+                <Ionicons name="close-circle-outline" size={19} color="#F3F3F3" />
+              </TouchableOpacity>
+              <View style={styles.playerRightControls}>
+                <Ionicons name="tv-outline" size={16} color="#F3F3F3" />
+                <Ionicons name="chatbubble" size={15} color="#F3F3F3" />
+                <Ionicons name="settings-sharp" size={15} color="#F3F3F3" />
+              </View>
+            </View>
+
+            {!isPlaying ? (
+              <View style={styles.centerControl}>
+                <Ionicons name="play" size={34} color="#0A0A0F" />
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
+
+        <View style={styles.details}>
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
           </Text>
-          {sectionLabel ? (
-            <Text style={styles.headerMeta} numberOfLines={1}>
-              {sectionLabel}{category ? ` • ${category}` : ""}
+          <View style={styles.metaRow}>
+            <Text style={styles.meta} numberOfLines={1}>
+              2013
             </Text>
-          ) : null}
-        </View>
-        <TouchableOpacity style={styles.roundButton} activeOpacity={0.85}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#F5F5F5" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.stage}>
-        <Pressable style={styles.videoShell} onPress={togglePlayback}>
-          <VideoView
-            player={player}
-            style={styles.video}
-            nativeControls={false}
-            contentFit="contain"
-            fullscreenOptions={{ enable: true }}
-            surfaceType="textureView"
-            useExoShutter={false}
-          />
-          <LinearGradient
-            colors={["rgba(30,29,27,0.08)", "rgba(30,29,27,0.72)"]}
-            style={styles.videoShade}
-          />
-          {!isPlaying ? (
-            <View style={styles.centerControl}>
-              <Ionicons name="play" size={34} color="#0A0A0F" />
+            <View style={styles.ratingBadge}>
+              <Text style={styles.ratingText}>U/A 16+</Text>
             </View>
-          ) : null}
-        </Pressable>
-      </View>
+            <Text style={styles.meta} numberOfLines={1}>
+              {sectionLabel ?? "Movies"}
+            </Text>
+            {category ? (
+              <Text style={styles.meta} numberOfLines={1}>
+                {category}
+              </Text>
+            ) : null}
+          </View>
+          <Text style={styles.description} numberOfLines={3}>
+            {subtitle}
+          </Text>
 
-      <View style={styles.details}>
-        <View style={styles.logoRow}>
-          <Image source={POSTER_LOGO} style={styles.logoMark} resizeMode="contain" />
-          <View style={styles.copyBlock}>
-            <Text style={styles.title} numberOfLines={2}>
-              {title}
-            </Text>
-            <Text style={styles.meta} numberOfLines={2}>
-              {subtitle}
-            </Text>
+          <Text style={styles.sectionHeading}>More like this</Text>
+          <View style={styles.relatedGrid}>
+            {relatedItems.map((item) => (
+              <RelatedPoster key={item.id} item={item} />
+            ))}
           </View>
         </View>
-
-        <View style={styles.tagRow}>
-          {sectionLabel ? (
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{sectionLabel}</Text>
-            </View>
-          ) : null}
-          {category ? (
-            <View style={[styles.tag, styles.tagMuted]}>
-              <Text style={styles.tagTextMuted}>{category}</Text>
-            </View>
-          ) : null}
-          <View style={[styles.tag, styles.tagMuted]}>
-            <Text style={styles.tagTextMuted}>HD</Text>
-          </View>
-        </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.primaryButton} onPress={togglePlayback} activeOpacity={0.86}>
-            <Ionicons name={isPlaying ? "pause" : "play"} size={18} color="#0A0A0F" />
-            <Text style={styles.primaryText}>{isPlaying ? "Pause" : "Play"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} activeOpacity={0.86}>
-            <Ionicons name="play-skip-forward-outline" size={20} color="#F5F5F5" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} activeOpacity={0.86}>
-            <Ionicons name="expand-outline" size={20} color="#F5F5F5" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </ScrollView>
     </View>
+  );
+}
+
+function RelatedPoster({ item }: { item: ContentItem }) {
+  const hasPoster = item.thumbnail && item.thumbnail !== LOCAL_MEDIA_KEY;
+
+  return (
+    <Pressable
+      style={styles.relatedCard}
+      onPress={() =>
+        router.push({
+          pathname: "/player",
+          params: {
+            id: item.id,
+            title: item.title,
+            videoUrl: item.videoUrl ?? "",
+            section: item.section ?? "",
+            category: item.category ?? item.genre,
+          },
+        })
+      }
+    >
+      <View style={styles.relatedArt}>
+        <Image
+          source={hasPoster ? { uri: item.thumbnail } : POSTER_LOGO}
+          style={hasPoster ? styles.relatedImage : styles.relatedLogo}
+          resizeMode={hasPoster ? "cover" : "contain"}
+        />
+        <View style={styles.relatedPlay}>
+          <Ionicons name="play" size={14} color="#10100E" />
+        </View>
+      </View>
+      <Text style={styles.relatedTitle} numberOfLines={1}>
+        {item.title}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -162,155 +202,154 @@ export function getSectionLabel(sectionId?: string) {
   return SECTIONS.find((section) => section.id === sectionId)?.label;
 }
 
+const posterWidth = (SCREEN_WIDTH - 64) / 3;
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: APP_BACKGROUND,
     flex: 1,
   },
-  topBar: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-  },
-  roundButton: {
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  headerTitle: {
-    color: "#F5F5F5",
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  headerMeta: {
-    color: "#B8B2A8",
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    marginTop: 2,
-    textAlign: "center",
+  scrollContent: {
+    backgroundColor: APP_BACKGROUND,
   },
   stage: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
+    backgroundColor: "#000",
   },
   videoShell: {
-    alignItems: "center",
     aspectRatio: 16 / 9,
     backgroundColor: "#000",
-    borderColor: "#3A3630",
-    borderRadius: 10,
-    borderWidth: 1,
-    justifyContent: "center",
     overflow: "hidden",
-    width: SCREEN_WIDTH - 24,
+    width: SCREEN_WIDTH,
   },
   video: {
     height: "100%",
     width: "100%",
   },
-  videoShade: {
-    ...StyleSheet.absoluteFillObject,
+  noVideoState: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  noVideoText: {
+    color: "#F5F5F5",
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+  },
+  playerTopControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    left: 14,
+    position: "absolute",
+    right: 14,
+    top: 12,
+  },
+  playerIcon: {
+    alignItems: "center",
+    height: 28,
+    justifyContent: "center",
+    width: 28,
+  },
+  playerRightControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
   },
   centerControl: {
     alignItems: "center",
-    backgroundColor: "#D4AF37",
+    backgroundColor: "#E3BD36",
     borderRadius: 34,
     height: 68,
     justifyContent: "center",
-    opacity: 0.92,
+    left: "50%",
+    marginLeft: -34,
+    marginTop: -34,
+    opacity: 0.94,
     position: "absolute",
+    top: "50%",
     width: 68,
   },
   details: {
     paddingHorizontal: 18,
-    paddingTop: 20,
-  },
-  logoRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 14,
-  },
-  logoMark: {
-    height: 64,
-    width: 64,
-  },
-  copyBlock: {
-    flex: 1,
+    paddingTop: 14,
   },
   title: {
     color: "#F5F5F5",
     fontFamily: "Inter_700Bold",
-    fontSize: 22,
-    marginBottom: 6,
+    fontSize: 18,
   },
-  meta: {
-    color: "#B8B2A8",
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  tagRow: {
+  metaRow: {
+    alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 16,
+    marginTop: 8,
   },
-  tag: {
-    backgroundColor: "#D4AF37",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  tagMuted: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  tagText: {
-    color: "#0A0A0F",
-    fontFamily: "Inter_700Bold",
+  meta: {
+    color: "#DFD8C8",
+    fontFamily: "Inter_500Medium",
     fontSize: 11,
   },
-  tagTextMuted: {
+  ratingBadge: {
+    backgroundColor: "#E3BD36",
+    borderRadius: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  ratingText: {
+    color: "#10100E",
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
+  },
+  description: {
+    color: "#BEB7AA",
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 9,
+  },
+  sectionHeading: {
     color: "#F5F5F5",
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
-  },
-  actions: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 22,
-  },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: "#D4AF37",
-    borderRadius: 10,
-    flex: 1,
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
-    paddingVertical: 14,
-  },
-  primaryText: {
-    color: "#0A0A0F",
     fontFamily: "Inter_700Bold",
-    fontSize: 15,
+    fontSize: 13,
+    marginBottom: 10,
+    marginTop: 20,
   },
-  iconButton: {
+  relatedGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  relatedCard: {
+    width: posterWidth,
+  },
+  relatedArt: {
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 10,
-    height: 48,
+    aspectRatio: 0.72,
+    backgroundColor: "#11110F",
+    borderRadius: 8,
     justifyContent: "center",
-    width: 48,
+    overflow: "hidden",
+  },
+  relatedLogo: {
+    height: "34%",
+    width: "58%",
+  },
+  relatedImage: {
+    height: "100%",
+    width: "100%",
+  },
+  relatedPlay: { alignItems: "center", backgroundColor: "#E3BD36", borderRadius: 15, height: 30, justifyContent: "center", left: "50%", marginLeft: -15, marginTop: -15, position: "absolute", top: "50%", width: 30 },
+  relatedTitle: {
+    color: "#F5F5F5",
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    marginTop: 6,
   },
 });
+
+
+
+
+
+
