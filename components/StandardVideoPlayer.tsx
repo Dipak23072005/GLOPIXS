@@ -57,13 +57,34 @@ export function StandardVideoPlayer({
     return (matching.length >= 6 ? matching : sourceItems).slice(0, 6);
   }, [category, relatedItemsProp]);
 
-  const player = useVideoPlayer(source ?? { uri: "about:blank" }, (videoPlayer) => {
+  const player = useVideoPlayer(null, (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.muted = false;
     videoPlayer.volume = 1;
-    if (source) videoPlayer.play();
   });
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadVideo = async () => {
+      await player.replaceAsync(source);
+      if (!cancelled && source) {
+        player.play();
+        setIsPlaying(true);
+      }
+    };
+
+    loadVideo().catch((error) => {
+      if (!cancelled) {
+        console.error("Unable to load video:", error);
+        setIsPlaying(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [player, source]);
 
   const togglePlayback = () => {
     if (!hasPlayableSource) return;
@@ -169,15 +190,12 @@ function RelatedPoster({ item }: { item: ContentItem }) {
     <Pressable
       style={styles.relatedCard}
       onPress={() =>
-        router.push({
-          pathname: "/player",
-          params: {
-            id: item.id,
-            title: item.title,
-            videoUrl: item.videoUrl ?? "",
-            section: item.section ?? "",
-            category: item.category ?? item.genre,
-          },
+        router.setParams({
+          id: item.id,
+          title: item.title,
+          videoUrl: item.videoUrl ?? "",
+          section: item.section ?? "",
+          category: item.category ?? item.genre,
         })
       }
     >

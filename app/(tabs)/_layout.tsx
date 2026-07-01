@@ -47,10 +47,13 @@ function ClassicTabLayout() {
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.surface,
+          backgroundColor: isIOS ? "transparent" : "rgba(7, 9, 9, 0.96)",
           borderTopWidth: 1,
           borderTopColor: colors.border,
           elevation: 0,
+          height: isWeb ? 84 : 74,
+          paddingTop: 7,
+          paddingBottom: 8,
           ...(isWeb ? { height: 84 } : {}),
         },
         tabBarBackground: () =>

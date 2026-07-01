@@ -2,7 +2,7 @@
 
 import { ContentItem, ContentSection, FEATURED_CONTENT, LOCAL_MEDIA_KEY, SECTIONS } from "@/constants/data";
 
-const DEFAULT_API_BASE_URL = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
+const DEFAULT_API_BASE_URL = "https://glopixs-api.onrender.com";
 
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_GLOPIXS_API_URL ||
@@ -34,9 +34,6 @@ const INDIAN_LANGUAGES = new Set([
   "punjabi",
   "gujarati",
   "bhojpuri",
-  "odia",
-  "assamese",
-  "urdu",
 ]);
 
 type ApiTitle = {
@@ -118,6 +115,7 @@ function toContentSection(item: ApiTitle, category: string, index: number): Cont
   if (haystack.includes("romance") || haystack.includes("love")) return "romance";
   if (haystack.includes("kid") || haystack.includes("cartoon")) return "kids";
   if (haystack.includes("series") || haystack.includes("show")) return "series";
+  if (toContentType(item.type) === "movie") return "movies";
 
   const sections = SECTIONS.map((section) => section.id);
   return sections[index % sections.length];
@@ -190,7 +188,8 @@ function safeIndianLanguage(value: unknown) {
 
 async function fetchWithTimeout(url: string) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  // Render's free service can take a while to wake from sleep.
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
     return await fetch(url, { signal: controller.signal });
@@ -258,8 +257,10 @@ export async function fetchApiContent() {
   inFlightContent = loadApiContent();
   try {
     const result = await inFlightContent;
-    cachedContent = result.length > 0 ? result : FEATURED_CONTENT;
-    return cachedContent;
+    if (result !== FEATURED_CONTENT && result.length > 0) {
+      cachedContent = result;
+    }
+    return result.length > 0 ? result : FEATURED_CONTENT;
   } finally {
     inFlightContent = null;
   }
@@ -292,3 +293,4 @@ async function loadApiContent() {
   console.warn("GLOPIXS API unavailable, using fallback content.", lastError);
   return FEATURED_CONTENT;
 }
+

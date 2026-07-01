@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import * as Haptics from "expo-haptics";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const FALLBACK_LOGO = require("../assets/images/poster-banner-logo.png");
-const SPOTLIGHT_BACKGROUND_VIDEO = require("../assets/videos/ai-logo-tv.mp4");
+const SPOTLIGHT_BACKGROUND_VIDEO = require("../assets/videos/logo-reveal.mp4");
 const LOCAL_BANNER_KEY = "glopixs-local-banner";
 const API_BACKGROUND = "#1E1D1B";
 
@@ -362,3 +362,4 @@ const styles = StyleSheet.create({
   epTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
   epMeta: { fontSize: 12, fontFamily: "Inter_400Regular" },
 });
+

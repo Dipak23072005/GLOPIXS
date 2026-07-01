@@ -8,7 +8,7 @@ import {
 } from "@expo-google-fonts/poppins";
 import { Stack } from "expo-router";
 import React, { useCallback } from "react";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { enableScreens } from "react-native-screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 enableScreens(true);
+LogBox.ignoreAllLogs(true);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +26,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>

@@ -31,32 +31,87 @@ export const SECTIONS: {
   {
     id: "movies",
     label: "Movies",
-    categories: ["Action", "Drama", "Thriller", "Comedy", "Horror"],
+    categories: [
+      "Upcoming",
+      "Drama",
+      "Thriller",
+      "Comedy",
+      "Horror",
+      "Adventure",
+      "Crime",
+      "Mystery",
+      "Family",
+      "Classic",
+    ],
   },
   {
     id: "series",
     label: "Series",
-    categories: ["Crime", "Sci-Fi", "Fantasy", "Mystery", "Historical"],
+    categories: [
+      "Crime",
+      "Sci-Fi",
+      "Fantasy",
+      "Mystery",
+      "Historical",
+      "Drama",
+      "Action",
+      "Comedy",
+      "Romance",
+      "Thriller",
+    ],
   },
   {
     id: "shortzone",
     label: "Shortzone",
-    categories: ["Comedy Shorts", "Drama Shorts", "Thriller Shorts", "Motivational", "Trending Shorts"],
+    categories: [
+      "Comedy Shorts",
+      "Drama Shorts",
+      "Thriller Shorts",
+      "Motivational",
+      "Trending Shorts",
+      "Romance Shorts",
+      "Action Shorts",
+      "Horror Shorts",
+      "Kids Shorts",
+      "Music Shorts",
+    ],
   },
   {
     id: "romance",
     label: "Romance",
-    categories: ["Romantic Drama", "Love Story", "Teen Romance", "Musical Romance", "Classic Romance"],
+    categories: [
+      "Romantic Drama",
+      "Love Story",
+      "Teen Romance",
+      "Musical Romance",
+      "Classic Romance",
+      "Wedding",
+      "College Love",
+      "Heartbreak",
+      "Family Romance",
+      "Feel Good",
+    ],
   },
   {
     id: "kids",
     label: "Kids",
-    categories: ["Cartoon", "Educational", "Adventure", "Fairy Tales", "Superhero"],
+    categories: [
+      "Cartoon",
+      "Educational",
+      "Adventure",
+      "Fairy Tales",
+      "Superhero",
+      "Animals",
+      "Learning",
+      "Comedy",
+      "Fantasy",
+      "Bedtime",
+    ],
   },
 ];
 
 export const CATEGORIES = [
-  { id: "all", label: "All Streaming" },
+  { id: "all", label: "all" },
   ...SECTIONS.map((section) => ({ id: section.id, label: section.label })),
 ];
 
@@ -159,3 +214,6 @@ export interface LiveChannel {
 }
 
 export const LIVE_CHANNELS: LiveChannel[] = [];
+
+
+

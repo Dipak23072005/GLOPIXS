@@ -9,7 +9,6 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:PATH = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:PATH"
 
 $Adb = Join-Path $env:ANDROID_HOME "platform-tools\adb.exe"
-$Node = "C:\Program Files\nodejs\node.exe"
 $Npx = "C:\Program Files\nodejs\npx.cmd"
 
 Write-Host "========================================" -ForegroundColor Cyan
@@ -20,7 +19,7 @@ Write-Host "Project: $ProjectRoot"
 $apiRunning = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
 if (-not $apiRunning) {
     Write-Host "Starting API on port 3000 in new window..." -ForegroundColor Yellow
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/k", "cd /d `"$ProjectRoot`" && `"$Node`" server\api-server.js"
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/k", "cd /d `"$ProjectRoot`" && npm.cmd run api"
     Write-Host "Waiting 3 seconds for API..." -ForegroundColor Yellow
     Start-Sleep -Seconds 3
 } else {

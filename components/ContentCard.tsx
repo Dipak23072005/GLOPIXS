@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { router } from "expo-router";
@@ -18,10 +18,10 @@ import { ContentItem, SECTIONS } from "@/constants/data";
 import { useColors } from "@/hooks/useColors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2.3;
+const CARD_WIDTH = (SCREEN_WIDTH - 50) / 2.45;
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 const POSTER_BANNER_LOGO = require("../assets/images/poster-banner-logo.png");
-const HOME_BACKGROUND_VIDEO = require("../assets/videos/home-logo-video.mp4");
+const HOME_BACKGROUND_VIDEO = require("../assets/videos/logo-reveal.mp4");
 const LOCAL_BANNER_KEY = "glopixs-local-banner";
 const APP_BACKGROUND = "#1E1D1B";
 
@@ -205,7 +205,7 @@ export function ContentCard({ item, size = "medium" }: ContentCardProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const cardWidth =
     size === "large" ? SCREEN_WIDTH * 0.65 : size === "small" ? SCREEN_WIDTH * 0.35 : CARD_WIDTH;
-  const cardHeight = cardWidth * 1.5;
+  const cardHeight = cardWidth * 1.48;
 
   const animatePress = (toValue: number) => {
     Animated.spring(scale, {
@@ -252,7 +252,7 @@ export function ContentCard({ item, size = "medium" }: ContentCardProps) {
       >
         <PosterMedia uri={posterUri} style={styles.image} borderRadius={colors.radius} />
         <LinearGradient
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.76)"]}
+          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.82)"]}
           style={[styles.overlay, { borderRadius: colors.radius }]}
         />
         <View style={[styles.sectionBadge, { backgroundColor: colors.gold }]}>
@@ -337,14 +337,6 @@ export function FeaturedCard({ item }: { item: ContentItem }) {
             <Text style={styles.sectionBadgeTextLg}>{sectionLabel(item.section)}</Text>
           </View>
         ) : null}
-        <Text style={[styles.featuredTitle, { color: colors.goldLight }]} numberOfLines={1}>
-          {isHero ? "ENTERTAINMENT BEYOND BOUNDARYS" : item.title}
-        </Text>
-        <Text style={[styles.featuredMeta, { color: colors.goldLight }]} numberOfLines={3}>
-          {isHero
-            ? "Premium OTT streaming for movies, series, short zone, romance, and kids. Launching 23 August 2026."
-            : `${item.category || item.genre} - ${item.year} - ${item.type === "series" ? `${item.episodes} Episodes` : item.duration}`}
-        </Text>
         <View style={styles.featuredActions}>
           <TouchableOpacity
             style={[styles.playBtn, { backgroundColor: colors.gold }]}
@@ -368,17 +360,17 @@ export function FeaturedCard({ item }: { item: ContentItem }) {
 
 const styles = StyleSheet.create({
   card: {
-    marginRight: 12,
+    marginRight: 10,
   },
   imageContainer: {
     borderWidth: 1,
-    elevation: 5,
+    elevation: 3,
     overflow: "hidden",
     position: "relative",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
   },
   image: {
     height: "100%",
@@ -425,7 +417,7 @@ const styles = StyleSheet.create({
     right: 0,
   },
   sectionBadge: {
-    borderRadius: 4,
+    borderRadius: 5,
     left: 8,
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -440,7 +432,7 @@ const styles = StyleSheet.create({
   },
   premiumBadge: {
     alignItems: "center",
-    borderRadius: 4,
+    borderRadius: 5,
     flexDirection: "row",
     gap: 2,
     left: 8,
@@ -457,8 +449,8 @@ const styles = StyleSheet.create({
   },
   ratingBadge: {
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.42)",
-    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    borderRadius: 8,
     bottom: 8,
     flexDirection: "row",
     gap: 2,
@@ -474,7 +466,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
-    marginTop: 8,
+    marginTop: 7,
   },
   genre: {
     fontFamily: "Inter_400Regular",
@@ -493,7 +485,7 @@ const styles = StyleSheet.create({
   },
   featuredCard: {
     backgroundColor: APP_BACKGROUND,
-    height: SCREEN_WIDTH * 0.82,
+    height: SCREEN_WIDTH * 0.78,
     overflow: "hidden",
     position: "relative",
     width: SCREEN_WIDTH,
@@ -577,3 +569,4 @@ const styles = StyleSheet.create({
     width: 42,
   },
 });
+

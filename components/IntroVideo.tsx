@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Animated, Easing, StyleSheet } from "react-native";
 
@@ -8,11 +8,11 @@ type IntroVideoProps = {
 
 const INTRO_VIDEO = require("../assets/videos/intro-4-sec-2-2-logo-revel-20260617.mp4");
 const APP_BACKGROUND = "#1E1D1B";
-const INTRO_VISIBLE_MS = 1000;
+const INTRO_VISIBLE_MS = 4300;
 
 export function IntroVideo({ onFinish }: IntroVideoProps) {
   const opacity = useRef(new Animated.Value(1)).current;
-  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
+  const finishedRef = useRef(false);
   const player = useVideoPlayer(INTRO_VIDEO, (videoPlayer) => {
     videoPlayer.loop = false;
     videoPlayer.muted = true;
@@ -20,8 +20,13 @@ export function IntroVideo({ onFinish }: IntroVideoProps) {
     videoPlayer.play();
   });
 
+  const finish = useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    onFinish();
+  }, [onFinish]);
+
   const handleFirstFrameRender = useCallback(() => {
-    setFirstFrameRendered(true);
     player.play();
   }, [player]);
 
@@ -37,19 +42,19 @@ export function IntroVideo({ onFinish }: IntroVideoProps) {
     ]);
 
     fadeOut.start(({ finished }) => {
-      if (finished) onFinish();
+      if (finished) finish();
     });
 
     return () => {
       fadeOut.stop();
     };
-  }, [onFinish, opacity]);
+  }, [finish, opacity]);
 
   useEffect(() => {
     player.play();
-    const timer = setTimeout(onFinish, INTRO_VISIBLE_MS);
+    const timer = setTimeout(finish, INTRO_VISIBLE_MS + 450);
     return () => clearTimeout(timer);
-  }, [onFinish, player]);
+  }, [finish, player]);
 
   return (
     <Animated.View pointerEvents="none" style={[styles.overlay, { opacity }]}>

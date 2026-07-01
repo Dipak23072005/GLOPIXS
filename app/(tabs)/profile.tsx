@@ -1,297 +1,223 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Platform,
-} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-interface SettingRowProps {
-  icon: string;
+import { useColors } from "@/hooks/useColors";
+
+const STORAGE_KEY = "glopixs-profile-v1";
+const API_URL = "https://glopixs-api.onrender.com";
+
+type ProfileData = {
+  name: string;
+  email: string;
+  notifications: boolean;
+  autoplay: boolean;
+  wifiOnly: boolean;
+  language: string;
+  quality: string;
+};
+
+const DEFAULT_PROFILE: ProfileData = {
+  name: "Guest User",
+  email: "guest@glopixs.com",
+  notifications: true,
+  autoplay: true,
+  wifiOnly: true,
+  language: "Hindi",
+  quality: "Auto",
+};
+
+type RowProps = {
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
-  toggle?: boolean;
   toggleValue?: boolean;
-  onToggle?: (val: boolean) => void;
-  gold?: boolean;
-}
+  danger?: boolean;
+  onPress?: () => void;
+  onToggle?: (value: boolean) => void;
+};
 
-function SettingRow({ icon, label, value, toggle, toggleValue, onToggle, gold }: SettingRowProps) {
+function SettingRow({ icon, label, value, toggleValue, danger, onPress, onToggle }: RowProps) {
   const colors = useColors();
+  const isToggle = typeof toggleValue === "boolean";
+
   return (
-    <TouchableOpacity
-      style={[styles.settingRow, { borderBottomColor: colors.border }]}
-      onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-      activeOpacity={toggle ? 1 : 0.7}
+    <Pressable
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress?.();
+      }}
+      disabled={isToggle}
+      style={({ pressed }) => [styles.row, { borderBottomColor: colors.border, opacity: pressed ? 0.72 : 1 }]}
     >
-      <View style={[styles.settingIcon, { backgroundColor: colors.secondary }]}>
-        <Ionicons name={icon as any} size={18} color={gold ? colors.gold : colors.foreground} />
+      <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>
+        <Ionicons name={icon} size={18} color={danger ? "#EF4444" : colors.gold} />
       </View>
-      <Text style={[styles.settingLabel, { color: colors.foreground }]}>{label}</Text>
-      <View style={styles.settingRight}>
-        {value && <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>{value}</Text>}
-        {toggle ? (
-          <Switch
-            value={toggleValue}
-            onValueChange={onToggle}
-            trackColor={{ false: colors.border, true: colors.gold }}
-            thumbColor={toggleValue ? "#fff" : "#ccc"}
-          />
-        ) : (
+      <Text style={[styles.rowLabel, { color: danger ? "#EF4444" : colors.foreground }]}>{label}</Text>
+      {isToggle ? (
+        <Switch
+          value={toggleValue}
+          onValueChange={onToggle}
+          trackColor={{ false: colors.border, true: colors.gold }}
+          thumbColor="#FFFFFF"
+        />
+      ) : (
+        <View style={styles.rowEnd}>
+          {value ? <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>{value}</Text> : null}
           <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
-        )}
-      </View>
-    </TouchableOpacity>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const [notifications, setNotifications] = useState(true);
-  const [autoplay, setAutoplay] = useState(true);
-  const [downloadWifi, setDownloadWifi] = useState(true);
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [editVisible, setEditVisible] = useState(false);
+  const [picker, setPicker] = useState<"language" | "quality" | null>(null);
+  const [draftName, setDraftName] = useState(DEFAULT_PROFILE.name);
+  const [draftEmail, setDraftEmail] = useState(DEFAULT_PROFILE.email);
+
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((stored) => stored && setProfile({ ...DEFAULT_PROFILE, ...JSON.parse(stored) }))
+      .catch(() => undefined);
+  }, []);
+
+  const updateProfile = (next: Partial<ProfileData>) => {
+    setProfile((current) => {
+      const updated = { ...current, ...next };
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated)).catch(() => undefined);
+      return updated;
+    });
+  };
+
+  const openEdit = () => {
+    setDraftName(profile.name);
+    setDraftEmail(profile.email);
+    setEditVisible(true);
+  };
+
+  const saveProfile = () => {
+    const name = draftName.trim();
+    const email = draftEmail.trim();
+    if (!name || !/^\S+@\S+\.\S+$/.test(email)) {
+      Alert.alert("Check details", "Enter a valid name and email address.");
+      return;
+    }
+    updateProfile({ name, email });
+    setEditVisible(false);
+  };
+
+  const showComingSoon = (title: string) => Alert.alert(title, "This feature will be available in the next GLOPIXS update.");
+  const initials = profile.name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "G";
+  const options = picker === "language" ? ["Hindi", "Marathi", "Tamil", "Telugu", "Bengali"] : ["Auto", "Data Saver", "HD", "Full HD"];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scroll,
-          Platform.OS === "web" && { paddingBottom: 34 },
-        ]}
-      >
-        {/* Profile Card */}
-        <View style={[styles.profileCard, { paddingTop: topPad + 24, backgroundColor: colors.surface }]}>
-          <View style={[styles.avatarLg, { backgroundColor: colors.gold }]}>
-            <Ionicons name="person" size={40} color="#000" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: (Platform.OS === "web" ? 67 : insets.top) + 18, paddingBottom: insets.bottom + 96 }]}> 
+        <View style={styles.header}>
+          <Text style={[styles.heading, { color: colors.foreground }]}>Profile</Text>
+          <Pressable onPress={openEdit} style={[styles.editButton, { borderColor: colors.border }]}>
+            <Ionicons name="pencil" size={17} color={colors.foreground} />
+          </Pressable>
+        </View>
+
+        <View style={styles.identity}>
+          <View style={[styles.avatar, { backgroundColor: colors.gold }]}><Text style={styles.initials}>{initials}</Text></View>
+          <View style={styles.identityCopy}>
+            <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>{profile.name}</Text>
+            <Text style={[styles.email, { color: colors.mutedForeground }]} numberOfLines={1}>{profile.email}</Text>
+            <View style={[styles.planBadge, { borderColor: colors.gold }]}><Ionicons name="sparkles" size={12} color={colors.gold} /><Text style={[styles.planBadgeText, { color: colors.gold }]}>Free member</Text></View>
           </View>
-          <Text style={[styles.userName, { color: colors.foreground }]}>Guest User</Text>
-          <Text style={[styles.userEmail, { color: colors.mutedForeground }]}>guest@glopixs.com</Text>
-          <TouchableOpacity
-            style={[styles.premiumBtn, { borderColor: colors.gold }]}
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-          >
-            <Ionicons name="star" size={14} color={colors.gold} />
-            <Text style={[styles.premiumBtnText, { color: colors.gold }]}>Upgrade to Premium</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Subscription Info */}
-        <View style={[styles.subCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.subLeft}>
-            <Ionicons name="shield-checkmark" size={22} color={colors.gold} />
-            <View>
-              <Text style={[styles.subTitle, { color: colors.foreground }]}>Free Plan</Text>
-              <Text style={[styles.subDetail, { color: colors.mutedForeground }]}>Limited content access</Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[styles.upgradeBtn, { backgroundColor: colors.gold }]}
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-          >
-            <Text style={styles.upgradeBtnText}>Upgrade</Text>
-          </TouchableOpacity>
+        <View style={[styles.planBand, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+          <View><Text style={[styles.planTitle, { color: colors.foreground }]}>Unlock GLOPIXS Premium</Text><Text style={[styles.planSub, { color: colors.mutedForeground }]}>Ad-free streaming and Full HD</Text></View>
+          <Pressable onPress={() => showComingSoon("Premium plans")} style={[styles.goldButton, { backgroundColor: colors.gold }]}><Text style={styles.goldButtonText}>View plans</Text></Pressable>
         </View>
 
-        {/* Account Settings */}
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>ACCOUNT</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingRow icon="person-outline" label="Edit Profile" />
-          <SettingRow icon="lock-closed-outline" label="Change Password" />
-          <SettingRow icon="card-outline" label="Subscriptions & Billing" />
-          <SettingRow icon="download-outline" label="My Downloads" />
-          <SettingRow icon="heart-outline" label="Watchlist" value="12 titles" />
+        <View style={styles.stats}>
+          {[{ icon: "heart", value: "12", label: "My List" }, { icon: "download", value: "0", label: "Downloads" }, { icon: "time", value: "8h", label: "Watched" }].map((item) => (
+            <Pressable key={item.label} onPress={() => showComingSoon(item.label)} style={[styles.stat, { borderColor: colors.border }]}>
+              <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={19} color={colors.gold} />
+              <Text style={[styles.statValue, { color: colors.foreground }]}>{item.value}</Text>
+              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+            </Pressable>
+          ))}
         </View>
 
-        {/* Preferences */}
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PREFERENCES</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingRow
-            icon="notifications-outline"
-            label="Push Notifications"
-            toggle
-            toggleValue={notifications}
-            onToggle={setNotifications}
-          />
-          <SettingRow
-            icon="play-circle-outline"
-            label="Autoplay Next Episode"
-            toggle
-            toggleValue={autoplay}
-            onToggle={setAutoplay}
-          />
-          <SettingRow
-            icon="wifi-outline"
-            label="Download on Wi-Fi Only"
-            toggle
-            toggleValue={downloadWifi}
-            onToggle={setDownloadWifi}
-          />
-          <SettingRow icon="language-outline" label="Content Language" value="Hindi" />
-          <SettingRow icon="tv-outline" label="Video Quality" value="Auto" />
+        <Text style={[styles.section, { color: colors.mutedForeground }]}>ACCOUNT</Text>
+        <View style={[styles.group, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SettingRow icon="person-outline" label="Edit profile" onPress={openEdit} />
+          <SettingRow icon="card-outline" label="Subscription and billing" value="Free" onPress={() => showComingSoon("Subscription and billing")} />
+          <SettingRow icon="heart-outline" label="My List" value="12 titles" onPress={() => showComingSoon("My List")} />
         </View>
 
-        {/* Support */}
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SUPPORT</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingRow icon="help-circle-outline" label="Help Center" />
-          <SettingRow icon="chatbubble-outline" label="Contact Support" />
-          <SettingRow icon="star-outline" label="Rate GLOPIXS" gold />
-          <SettingRow icon="share-outline" label="Share App" />
-          <SettingRow icon="information-circle-outline" label="About" value="v1.0.0" />
+        <Text style={[styles.section, { color: colors.mutedForeground }]}>PLAYBACK</Text>
+        <View style={[styles.group, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SettingRow icon="play-circle-outline" label="Autoplay next video" toggleValue={profile.autoplay} onToggle={(autoplay) => updateProfile({ autoplay })} />
+          <SettingRow icon="wifi-outline" label="Download on Wi-Fi only" toggleValue={profile.wifiOnly} onToggle={(wifiOnly) => updateProfile({ wifiOnly })} />
+          <SettingRow icon="language-outline" label="Content language" value={profile.language} onPress={() => setPicker("language")} />
+          <SettingRow icon="videocam-outline" label="Video quality" value={profile.quality} onPress={() => setPicker("quality")} />
+          <SettingRow icon="notifications-outline" label="Notifications" toggleValue={profile.notifications} onToggle={(notifications) => updateProfile({ notifications })} />
         </View>
 
-        {/* Sign Out */}
-        <TouchableOpacity
-          style={[styles.signOutBtn, { borderColor: "#EF4444" }]}
-          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)}
-        >
-          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
+        <Text style={[styles.section, { color: colors.mutedForeground }]}>SUPPORT</Text>
+        <View style={[styles.group, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SettingRow icon="help-circle-outline" label="Help center" onPress={() => Linking.openURL(`${API_URL}/health`)} />
+          <SettingRow icon="mail-outline" label="Contact support" onPress={() => Linking.openURL("mailto:support@glopixs.com?subject=GLOPIXS%20Support")} />
+          <SettingRow icon="share-social-outline" label="Share GLOPIXS" onPress={() => Share.share({ message: `Watch GLOPIXS: ${API_URL}` })} />
+          <SettingRow icon="information-circle-outline" label="About GLOPIXS" value="v1.0.0" onPress={() => Alert.alert("GLOPIXS", "Entertainment beyond boundaries.\nVersion 1.0.0")} />
+        </View>
+
+        <Pressable onPress={() => Alert.alert("Sign out?", "Your saved preferences will remain on this device.", [{ text: "Cancel", style: "cancel" }, { text: "Sign out", style: "destructive", onPress: () => updateProfile({ name: "Guest User", email: "guest@glopixs.com" }) }])} style={[styles.signOut, { borderColor: "#EF4444" }]}>
+          <Ionicons name="log-out-outline" size={18} color="#EF4444" /><Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
       </ScrollView>
+
+      <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
+        <View style={styles.overlay}><View style={[styles.modal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>Edit profile</Text>
+          <TextInput value={draftName} onChangeText={setDraftName} placeholder="Name" placeholderTextColor={colors.mutedForeground} style={[styles.input, { borderColor: colors.border, color: colors.foreground }]} />
+          <TextInput value={draftEmail} onChangeText={setDraftEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Email" placeholderTextColor={colors.mutedForeground} style={[styles.input, { borderColor: colors.border, color: colors.foreground }]} />
+          <View style={styles.modalActions}><Pressable onPress={() => setEditVisible(false)} style={styles.textButton}><Text style={[styles.textButtonLabel, { color: colors.mutedForeground }]}>Cancel</Text></Pressable><Pressable onPress={saveProfile} style={[styles.saveButton, { backgroundColor: colors.gold }]}><Text style={styles.goldButtonText}>Save</Text></Pressable></View>
+        </View></View>
+      </Modal>
+
+      <Modal visible={picker !== null} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
+        <Pressable style={styles.overlay} onPress={() => setPicker(null)}><View style={[styles.modal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>{picker === "language" ? "Content language" : "Video quality"}</Text>
+          {options.map((option) => { const selected = option === (picker === "language" ? profile.language : profile.quality); return <Pressable key={option} onPress={() => { updateProfile(picker === "language" ? { language: option } : { quality: option }); setPicker(null); }} style={[styles.option, { borderBottomColor: colors.border }]}><Text style={[styles.optionText, { color: colors.foreground }]}>{option}</Text>{selected ? <Ionicons name="checkmark-circle" size={20} color={colors.gold} /> : null}</Pressable>; })}
+        </View></Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { paddingBottom: 100 },
-  profileCard: {
-    alignItems: "center",
-    paddingBottom: 28,
-    paddingHorizontal: 16,
-  },
-  avatarLg: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  userName: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    marginBottom: 16,
-  },
-  premiumBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1.5,
-  },
-  premiumBtnText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  subCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  subLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  subTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-  },
-  subDetail: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-  },
-  upgradeBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  upgradeBtnText: {
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-    color: "#000",
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.5,
-    paddingHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  settingsCard: {
-    marginHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  settingIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  settingRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  settingValue: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  signOutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 20,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  signOutText: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    color: "#EF4444",
-  },
+  container: { flex: 1 }, scroll: { paddingHorizontal: 16 }, header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 22 }, heading: { fontFamily: "Inter_700Bold", fontSize: 24 }, editButton: { alignItems: "center", borderRadius: 6, borderWidth: 1, height: 36, justifyContent: "center", width: 36 },
+  identity: { alignItems: "center", flexDirection: "row", marginBottom: 20 }, avatar: { alignItems: "center", borderRadius: 8, height: 72, justifyContent: "center", width: 72 }, initials: { color: "#080808", fontFamily: "Inter_700Bold", fontSize: 23 }, identityCopy: { flex: 1, marginLeft: 14 }, name: { fontFamily: "Inter_700Bold", fontSize: 20 }, email: { fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 3 }, planBadge: { alignItems: "center", alignSelf: "flex-start", borderRadius: 4, borderWidth: 1, flexDirection: "row", gap: 4, marginTop: 8, paddingHorizontal: 7, paddingVertical: 3 }, planBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 10 },
+  planBand: { alignItems: "center", borderRadius: 7, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 14 }, planTitle: { fontFamily: "Inter_600SemiBold", fontSize: 13 }, planSub: { fontFamily: "Inter_400Regular", fontSize: 10, marginTop: 3 }, goldButton: { borderRadius: 5, paddingHorizontal: 12, paddingVertical: 9 }, goldButtonText: { color: "#090909", fontFamily: "Inter_700Bold", fontSize: 11 },
+  stats: { flexDirection: "row", gap: 8, marginTop: 12 }, stat: { alignItems: "center", borderRadius: 7, borderWidth: 1, flex: 1, minHeight: 92, paddingVertical: 11 }, statValue: { fontFamily: "Inter_700Bold", fontSize: 16, marginTop: 5 }, statLabel: { fontFamily: "Inter_400Regular", fontSize: 9, marginTop: 2 }, section: { fontFamily: "Inter_600SemiBold", fontSize: 10, marginBottom: 7, marginTop: 22 }, group: { borderRadius: 7, borderWidth: 1, overflow: "hidden" },
+  row: { alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", gap: 11, minHeight: 56, paddingHorizontal: 12 }, rowIcon: { alignItems: "center", borderRadius: 5, height: 32, justifyContent: "center", width: 32 }, rowLabel: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13 }, rowEnd: { alignItems: "center", flexDirection: "row", gap: 5 }, rowValue: { fontFamily: "Inter_400Regular", fontSize: 11 }, signOut: { alignItems: "center", borderRadius: 7, borderWidth: 1, flexDirection: "row", gap: 7, justifyContent: "center", marginTop: 22, paddingVertical: 14 }, signOutText: { color: "#EF4444", fontFamily: "Inter_600SemiBold", fontSize: 13 },
+  overlay: { alignItems: "center", backgroundColor: "rgba(0,0,0,0.72)", flex: 1, justifyContent: "center", padding: 22 }, modal: { borderRadius: 8, borderWidth: 1, maxWidth: 420, padding: 18, width: "100%" }, modalTitle: { fontFamily: "Inter_700Bold", fontSize: 18, marginBottom: 16 }, input: { borderRadius: 6, borderWidth: 1, fontFamily: "Inter_400Regular", fontSize: 14, marginBottom: 11, paddingHorizontal: 12, paddingVertical: 11 }, modalActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: 6 }, textButton: { paddingHorizontal: 15, paddingVertical: 10 }, textButtonLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12 }, saveButton: { borderRadius: 5, paddingHorizontal: 20, paddingVertical: 10 }, option: { alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", justifyContent: "space-between", minHeight: 48 }, optionText: { fontFamily: "Inter_500Medium", fontSize: 14 },
 });

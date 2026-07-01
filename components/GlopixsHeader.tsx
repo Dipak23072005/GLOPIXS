@@ -7,6 +7,7 @@ import {
   Platform,
   Image,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -35,10 +36,11 @@ export function GlopixsHeader({
       style={[
         styles.header,
         {
-          paddingTop: topPad + 12,
+          paddingTop: topPad + 10,
         },
       ]}
     >
+      <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
       <View style={styles.logoRow}>
         {title ? (
           <Text style={[styles.pageTitle, { color: colors.foreground }]}>{title}</Text>
@@ -86,11 +88,12 @@ const styles = StyleSheet.create({
   header: {
     left: 0,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 10,
     position: "absolute",
     right: 0,
     top: 0,
     zIndex: 10,
+    overflow: "hidden",
   },
   logoRow: {
     flexDirection: "row",
@@ -98,15 +101,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   logoImage: {
-    width: 178,
-    height: 44,
+    width: 154,
+    height: 38,
   },
   logoBackdrop: {
     alignItems: "center",
     backgroundColor: "transparent",
-    height: 48,
+    height: 42,
     justifyContent: "center",
-    width: 182,
+    width: 158,
   },
   logoPlaceholder: {
     height: 40,
@@ -122,9 +125,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     borderWidth: 1,
     justifyContent: "center",
@@ -138,9 +141,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "#D4AF37",
     borderWidth: 1,
     alignItems: "center",

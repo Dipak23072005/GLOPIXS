@@ -3,7 +3,6 @@ cd /d "%~dp0"
 
 set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
 set "ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk"
-set "NODE_EXE=C:\Program Files\nodejs\node.exe"
 set "NPX_CMD=C:\Program Files\nodejs\npx.cmd"
 set "PATH=%JAVA_HOME%\bin;%ANDROID_HOME%\platform-tools;%ANDROID_HOME%\emulator;%PATH%"
 
@@ -18,7 +17,7 @@ if %errorlevel%==0 (
     echo API already running on port 3000.
 ) else (
     echo Starting API server in new window...
-    start "GLOPIXS API" /D "%~dp0" cmd /k ""%NODE_EXE%" server\api-server.js"
+    start "GLOPIXS API" /D "%~dp0" cmd /k "npm.cmd run api"
     echo Waiting 3 seconds for API to start...
     timeout /t 3 /nobreak >nul
 )
