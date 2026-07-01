@@ -2,11 +2,14 @@
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.widget.FrameLayout
 import android.widget.ImageView
 import java.util.Locale
@@ -19,7 +22,6 @@ class IntroActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    hideSystemUi()
 
     val imageView = ImageView(this).apply {
       scaleType = ImageView.ScaleType.FIT_CENTER
@@ -34,9 +36,20 @@ class IntroActivity : Activity() {
       setBackgroundColor(android.graphics.Color.BLACK)
       addView(imageView)
     })
+    hideSystemUi()
 
     animateFrames(imageView)
     mainHandler.postDelayed({ openMain() }, 5200L)
+  }
+
+  override fun onResume() {
+    super.onResume()
+    hideSystemUi()
+  }
+
+  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    super.onWindowFocusChanged(hasFocus)
+    if (hasFocus) hideSystemUi()
   }
 
   private fun animateFrames(imageView: ImageView) {
@@ -72,15 +85,25 @@ class IntroActivity : Activity() {
   }
 
   private fun hideSystemUi() {
-    @Suppress("DEPRECATION")
-    window.decorView.systemUiVisibility = (
-      View.SYSTEM_UI_FLAG_FULLSCREEN
-        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-      )
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      window.decorView.post {
+        window.decorView.windowInsetsController?.let { controller ->
+          controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+          controller.systemBarsBehavior =
+            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+      }
+    } else {
+      @Suppress("DEPRECATION")
+      window.decorView.systemUiVisibility = (
+        View.SYSTEM_UI_FLAG_FULLSCREEN
+          or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+          or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+          or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+          or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+          or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        )
+    }
   }
 }
 

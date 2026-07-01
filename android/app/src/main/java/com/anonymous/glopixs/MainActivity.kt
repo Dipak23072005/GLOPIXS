@@ -35,16 +35,21 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
+    applyImmersiveMode()
   }
 
   override fun onResume() {
     super.onResume()
+    applyImmersiveMode()
     forceReactRootRedraw()
   }
 
   override fun onWindowFocusChanged(hasFocus: Boolean) {
     super.onWindowFocusChanged(hasFocus)
-    if (hasFocus) forceReactRootRedraw()
+    if (hasFocus) {
+      applyImmersiveMode()
+      forceReactRootRedraw()
+    }
   }
 
   private fun forceReactRootRedraw() {
@@ -60,11 +65,14 @@ class MainActivity : ReactActivity() {
   }
 
 
-  private fun hideSystemBarsForIntro() {
+  private fun applyImmersiveMode() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      window.insetsController?.let { controller ->
-        controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-        controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+      window.decorView.post {
+        window.decorView.windowInsetsController?.let { controller ->
+          controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+          controller.systemBarsBehavior =
+            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
       }
     } else {
       @Suppress("DEPRECATION")
@@ -80,16 +88,11 @@ class MainActivity : ReactActivity() {
   }
 
   private fun restoreSystemBarsAfterIntro() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      window.insetsController?.show(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-    } else {
-      @Suppress("DEPRECATION")
-      window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-    }
+    applyImmersiveMode()
   }
 
   private fun showNativeIntroVideo() {
-    hideSystemBarsForIntro()
+    applyImmersiveMode()
 
     val mainHandler = Handler(Looper.getMainLooper())
     var introDurationMs = 5000L
